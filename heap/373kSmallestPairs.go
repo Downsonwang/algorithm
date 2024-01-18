@@ -2,7 +2,7 @@
  * @Descripttion: Find K pairs with smallest sums
  * @Author: DW
  * @Date: 2024-01-17 20:48:54
- * @LastEditTime: 2024-01-17 21:34:54
+ * @LastEditTime: 2024-01-17 21:47:15
  */
 package heap
 
@@ -62,6 +62,7 @@ func kSmallestPairs(nums1 []int, nums2 []int, k int) [][]int {
 		// 6. 遍历nums2
 		nextIdx := r + 1
 		if nextIdx < len(nums2) {
+			//如果对于当前的nums1元素在nums2中还有更多元素，则将下一个对推入最小堆。
 			heap.Push(minheap, Pair{u: l, v: nextIdx, sum: nums1[l] + nums2[nextIdx]})
 		}
 		k--
