@@ -2,7 +2,7 @@
  * @Descripttion: 基于物品的协同过滤
  * @Author:downson
  * @Date: 2024-04-10 21:57:38
- * @LastEditTime: 2024-04-11 00:34:27
+ * @LastEditTime: 2024-04-11 18:52:41
  */
 package main
 
@@ -14,7 +14,7 @@ import (
 
 type User struct {
 	userID int
-	item   []Post
+	item   [4]Post
 }
 
 type Post struct {
@@ -98,8 +98,6 @@ func initData() ([]*User, map[int][]Post) {
 		{PostId: 7, PostName: "政治", PostTag: 3},
 		{PostId: 8, PostName: "军事", PostTag: 3},
 		{PostId: 9, PostName: "武力", PostTag: 3},
-		{PostId: 10, PostName: "历史", PostTag: 3},
-		{PostId: 11, PostName: "水瓶座的独立思考", PostTag: 1},
 		{PostId: 10, PostName: "水瓶座故事", PostTag: 1},
 		{PostId: 11, PostName: "清华大学教授出轨17岁女生", PostTag: 3},
 		{PostId: 12, PostName: "摩羯座和水瓶座", PostTag: 1},
@@ -116,7 +114,7 @@ func initData() ([]*User, map[int][]Post) {
 	for _, post := range posts {
 		postPool[post.PostTag] = append(postPool[post.PostTag], post)
 	}
-
+	//fmt.Println(users, postPool)
 	return users, postPool
 }
 
@@ -151,6 +149,7 @@ func sim_posts(postPool map[int][]Post) map[int]map[int]float64 {
 		for i := 0; i < len(posts); i++ {
 			for j := i + 1; j < len(posts); j++ {
 				sim := cal_post_sim(posts[i], posts[j])
+
 				if postSimilarity[posts[i].PostId] == nil {
 					postSimilarity[posts[i].PostId] = make(map[int]float64)
 				}
@@ -163,6 +162,7 @@ func sim_posts(postPool map[int][]Post) map[int]map[int]float64 {
 			}
 		}
 	}
+	//	fmt.Println(postSimilarity)
 	return postSimilarity
 }
 
@@ -175,25 +175,27 @@ func cal_post_sim(post1, post2 Post) float64 {
 }
 
 func rem_post_to_user(users []*User, postPool map[int][]Post, postSimilarity map[int]map[int]float64) map[int][]Post {
-	rec := make(map[int][]Post, 3)
+	rec := make(map[int][]Post, 5)
 
 	for _, user := range users {
 		viewedPosts := make(map[int]bool)
 		for _, item := range user.item {
 			viewedPosts[item.PostId] = true
 		}
-
 		for _, item := range user.item {
-			if item.Score > 5 {
-				similarPosts := postPool[item.PostTag]
-				for _, post := range similarPosts {
-					if !viewedPosts[post.PostId] {
-						rec[user.userID] = append(rec[user.userID], post)
+			// 检查相似度矩阵中是否存在值为1的情况
+			if postSimilarity[item.PostId] != nil {
+				for postId, similarity := range postSimilarity[item.PostId] {
+					// 如果存在相似度为1且未被浏览的帖子，则推荐给用户
+					if postId != item.PostId && similarity == 1 && !viewedPosts[postId] {
+						similarPosts := postPool[postId]
+						for _, post := range similarPosts {
+							rec[user.userID] = append(rec[user.userID], post)
+						}
 					}
 				}
 			}
 		}
-
 	}
 
 	return rec
@@ -208,7 +210,7 @@ func get_random_posts(recommendations map[int][]Post) map[int][]Post {
 			rand.Shuffle(len(posts), func(i, j int) {
 				posts[i], posts[j] = posts[j], posts[i]
 			})
-			numPosts := min(3, len(posts))
+			numPosts := min(5, len(posts))
 			randomPosts[userID] = posts[:numPosts]
 		}
 	}
@@ -227,6 +229,7 @@ func main() {
 	users, postPool := initData()
 	postSimilarity := sim_posts(postPool)
 	recommendations := rem_post_to_user(users, postPool, postSimilarity)
+	fmt.Println(recommendations)
 	randomPosts := get_random_posts(recommendations)
 
 	for userID, posts := range randomPosts {
